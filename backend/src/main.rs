@@ -11,8 +11,7 @@ use listenfd::ListenFd;
 use mongodb::Client;
 use serde_json;
 
-mod app;
-use crate::app::{
+use backend::{
     app_context::AppContext,
     schema::{create_schema, Schema},
     user::User,
@@ -87,7 +86,6 @@ async fn main() -> std::io::Result<()> {
             session: Arc::new(Mutex::new(None)),
         },
     });
-    println!("{:?}", app_data);
 
     let mut listenfd = ListenFd::from_env();
 

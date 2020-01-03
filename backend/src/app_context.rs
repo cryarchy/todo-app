@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use juniper::Context;
 use mongodb::Database;
 
-use crate::app::user::User;
+use crate::user::User;
 
 #[derive(Debug)]
 pub struct AppContext {

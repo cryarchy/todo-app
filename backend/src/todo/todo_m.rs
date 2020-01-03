@@ -1,7 +1,7 @@
 use juniper::{FieldResult, ID};
 
-use crate::app::app_context::AppContext;
-use crate::app::todo::Todo;
+use crate::app_context::AppContext;
+use crate::todo::Todo;
 
 pub struct TodoM;
 

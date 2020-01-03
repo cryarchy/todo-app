@@ -1,7 +1,9 @@
-use juniper::{FieldResult, ID};
+use juniper::{FieldResult, IntoFieldError, ID};
+use validator::Validate;
 
-use crate::app::app_context::AppContext;
-use crate::app::shared::Credentials;
+use crate::app_context::AppContext;
+use crate::errors::ValidationErrorsWrapper;
+use crate::shared::Credentials;
 
 pub struct UserM;
 
@@ -11,6 +13,8 @@ pub struct UserM;
 impl UserM {
     #[graphql(description = "Create a new user")]
     fn new(context: &AppContext, user: Credentials) -> FieldResult<bool> {
+        user.validate()
+            .map_err(|e| ValidationErrorsWrapper(e).into_field_error())?;
         Ok(true)
     }
 

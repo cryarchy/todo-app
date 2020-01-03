@@ -1,11 +1,11 @@
 use juniper::{FieldResult, RootNode, ID};
 
-use crate::app::shared::Credentials;
+use crate::shared::Credentials;
 
-use crate::app::todo::{TodoM, TodoQ};
-use crate::app::user::{User, UserM};
+use crate::todo::{TodoM, TodoQ};
+use crate::user::{User, UserM};
 
-use crate::app::app_context::AppContext;
+use crate::app_context::AppContext;
 
 #[derive(Debug)]
 pub struct Queries;

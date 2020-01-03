@@ -10,4 +10,4 @@ pub struct User {
 
 mod user_m;
 
-pub use crate::app::user::user_m::UserM;
+pub use crate::user::user_m::UserM;
