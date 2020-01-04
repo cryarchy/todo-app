@@ -1,8 +1,8 @@
-use juniper::{FieldResult, IntoFieldError, ID};
+use juniper::{FieldError, FieldResult, ID};
 use validator::Validate;
 
 use crate::app_context::AppContext;
-use crate::errors::ValidationErrorsWrapper;
+use crate::errors::FromValidationErrors;
 use crate::shared::{Credentials, SubTest, Test};
 
 pub struct UserM;
@@ -14,7 +14,7 @@ impl UserM {
     #[graphql(description = "Create a new user")]
     fn new(context: &AppContext, user: Credentials) -> FieldResult<Option<bool>> {
         user.validate()
-            .map_err(|e| ValidationErrorsWrapper(e).into_field_error())?;
+            .map_err(|e| FieldError::from_validation_errors(e))?;
         Ok(Some(true))
     }
 
@@ -38,7 +38,7 @@ impl UserM {
             password: "pass".to_owned(),
         };
         test.validate()
-            .map_err(|e| ValidationErrorsWrapper(e).into_field_error())?;
+            .map_err(|e| FieldError::from_validation_errors(e))?;
         Ok(true)
     }
 }

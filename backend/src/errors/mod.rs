@@ -3,6 +3,10 @@ use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 pub struct ValidationErrorsWrapper(pub ValidationErrors);
 
+pub trait FromValidationErrors {
+    fn from_validation_errors(errors: ValidationErrors) -> Self;
+}
+
 fn juniper_value_from_serde_value(value: &serde_json::Value) -> juniper::Value {
     match value {
         serde_json::value::Value::Null => Value::Null,
@@ -90,8 +94,22 @@ impl ValidationErrorsWrapper {
     }
 }
 
-impl juniper::IntoFieldError for ValidationErrorsWrapper {
-    fn into_field_error(self) -> juniper::FieldError {
-        juniper::FieldError::new("Validation error", self.into_juniper_value())
+fn field_error_from_validation_errors(errors: ValidationErrors) -> juniper::FieldError {
+    let errors_map = errors.errors();
+    let v_errors = juniper::Object::with_capacity(errors_map.len());
+    let v_errors = errors_map
+        .into_iter()
+        .fold(v_errors, |mut v_errors, (k, v)| {
+            v_errors.add_field(k.clone(), juniper_value_from_validation_error_kind(v));
+            v_errors
+        });
+    let mut errors = juniper::Object::with_capacity(1);
+    errors.add_field("errors", juniper::Value::object(v_errors));
+    juniper::FieldError::new("Validation error", juniper::Value::object(errors))
+}
+
+impl FromValidationErrors for juniper::FieldError {
+    fn from_validation_errors(errors: ValidationErrors) -> Self {
+        field_error_from_validation_errors(errors)
     }
 }
