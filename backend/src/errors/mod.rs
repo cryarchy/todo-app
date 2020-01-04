@@ -1,10 +1,14 @@
 use juniper::{self, Object, Value};
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
-pub struct ValidationErrorsWrapper(pub ValidationErrors);
-
 pub trait FromValidationErrors {
     fn from_validation_errors(errors: ValidationErrors) -> Self;
+}
+
+impl FromValidationErrors for juniper::FieldError {
+    fn from_validation_errors(errors: ValidationErrors) -> Self {
+        field_error_from_validation_errors(errors)
+    }
 }
 
 fn juniper_value_from_serde_value(value: &serde_json::Value) -> juniper::Value {
@@ -66,35 +70,19 @@ fn juniper_value_from_validation_error_kind(error: &ValidationErrorsKind) -> jun
             let jobj = map.iter().fold(jobj, |mut jobj, (k, v)| {
                 jobj.add_field(
                     k.to_string(),
-                    ValidationErrorsWrapper(v.as_ref().clone()).into_juniper_value(),
+                    juniper_value_from_validation_errors(v.as_ref().clone()),
                 );
                 jobj
             });
             juniper::Value::object(jobj)
         }
         ValidationErrorsKind::Struct(ref x) => {
-            ValidationErrorsWrapper(x.as_ref().clone()).into_juniper_value()
+            juniper_value_from_validation_errors(x.as_ref().clone())
         }
     }
 }
 
-impl ValidationErrorsWrapper {
-    fn into_juniper_value(self) -> juniper::Value {
-        let errors_map = self.0.errors();
-        let v_errors = juniper::Object::with_capacity(errors_map.len());
-        let v_errors = errors_map
-            .into_iter()
-            .fold(v_errors, |mut v_errors, (k, v)| {
-                v_errors.add_field(k.clone(), juniper_value_from_validation_error_kind(v));
-                v_errors
-            });
-        let mut errors = juniper::Object::with_capacity(1);
-        errors.add_field("errors", juniper::Value::object(v_errors));
-        juniper::Value::object(errors)
-    }
-}
-
-fn field_error_from_validation_errors(errors: ValidationErrors) -> juniper::FieldError {
+fn juniper_value_from_validation_errors(errors: ValidationErrors) -> juniper::Value {
     let errors_map = errors.errors();
     let v_errors = juniper::Object::with_capacity(errors_map.len());
     let v_errors = errors_map
@@ -103,13 +91,11 @@ fn field_error_from_validation_errors(errors: ValidationErrors) -> juniper::Fiel
             v_errors.add_field(k.clone(), juniper_value_from_validation_error_kind(v));
             v_errors
         });
-    let mut errors = juniper::Object::with_capacity(1);
-    errors.add_field("errors", juniper::Value::object(v_errors));
-    juniper::FieldError::new("Validation error", juniper::Value::object(errors))
+    juniper::Value::object(v_errors)
 }
 
-impl FromValidationErrors for juniper::FieldError {
-    fn from_validation_errors(errors: ValidationErrors) -> Self {
-        field_error_from_validation_errors(errors)
-    }
+fn field_error_from_validation_errors(errors: ValidationErrors) -> juniper::FieldError {
+    let mut v_errors = juniper::Object::with_capacity(1);
+    v_errors.add_field("errors", juniper_value_from_validation_errors(errors));
+    juniper::FieldError::new("Validation error", juniper::Value::object(v_errors))
 }
