@@ -1,7 +1,9 @@
 use juniper::ID;
+use serde::{Deserialize, Serialize};
 
-#[derive(juniper::GraphQLObject)]
+#[derive(juniper::GraphQLObject, Deserialize, Serialize)]
 pub struct Todo {
+    #[serde(rename = "_id")]
     #[graphql(description = "The todo's database ID")]
     id: ID,
     #[graphql(description = "The todo's title")]

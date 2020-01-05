@@ -14,13 +14,13 @@ use serde_json;
 use backend::{
     app_context::AppContext,
     schema::{create_schema, Schema},
+    shared::Collections,
     user::User,
 };
 
 async fn graphiql() -> HttpResponse {
-    let app_port = env::var("APP_PORT").unwrap();
-    let app_host = env::var("APP_HOST").unwrap();
-    let html = graphiql_source(&format!("http://{}:{}/graphql", app_host, app_port));
+    let app_domain = env::var("APP_DOMAIN").expect("Expected APP_DOMAIN to be set in env!");
+    let html = graphiql_source(&format!("http://{}/graphql", app_domain));
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
@@ -58,25 +58,11 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
 
-    let app_port: u32 = env::var("APP_PORT")
-        .expect("Expected APP_PORT to be set in env!")
-        .parse()
-        .expect("Failed parsing APP_PORT to integer");
-    let app_host = env::var("APP_HOST").expect("Expected APP_HOST to be set in env!");
-    let db_host = env::var("DB_HOST").expect("Expected DB_HOST to be set in env!");
-    let db_port: u16 = env::var("DB_PORT")
-        .expect("Expected DB_PORT to be set in env!")
-        .parse()
-        .expect("Failed parsing APP_HOST to integer");
-    let db_user = env::var("DB_USER").expect("Expected DB_USER to be set in env!");
-    let db_pwd = env::var("DB_PWD").expect("Expected DB_PWD to be set in env!");
+    let app_domain = env::var("APP_DOMAIN").expect("Expected APP_DOMAIN to be set in env!");
+    let db_uri = env::var("DB_URI").expect("Expected DB_URI to be set in env!");
     let db_name = env::var("DB_NAME").expect("Expected DB_NAME to be set in env!");
 
-    let client = Client::with_uri_str(&format!(
-        "mongodb://{}:{}@{}:{}",
-        db_user, db_pwd, db_host, db_port
-    ))
-    .expect("Failed to initialize database!");
+    let client = Client::with_uri_str(&db_uri).expect("Failed to initialize database!");
     let db = client.database(&db_name);
 
     let app_data = web::Data::new(AppData {
@@ -84,6 +70,7 @@ async fn main() -> std::io::Result<()> {
         context: AppContext {
             db: db,
             session: Arc::new(Mutex::new(None)),
+            collections: Collections::new(),
         },
     });
 
@@ -102,7 +89,7 @@ async fn main() -> std::io::Result<()> {
     server = if let Some(l) = listenfd.take_tcp_listener(0).unwrap() {
         server.listen(l)?
     } else {
-        server.bind(format!("{}:{}", app_host, app_port))?
+        server.bind(app_domain)?
     };
 
     server.run().await
